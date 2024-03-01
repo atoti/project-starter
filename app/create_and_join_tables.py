@@ -2,53 +2,49 @@ from __future__ import annotations
 
 import atoti as tt
 
-from .constants import StationDetailsTableColumn, StationStatusTableColumn, Table
+from .structure import STRUCTURE
+from .util import get_column
 
 
 def create_station_status_table(session: tt.Session, /) -> None:
+    structure = STRUCTURE.tables.STATION_STATUS
+    columns = structure.columns
     session.create_table(
-        Table.STATION_STATUS.value,
-        keys=[
-            StationStatusTableColumn.STATION_ID.value,
-            StationStatusTableColumn.BIKE_TYPE.value,
-        ],
+        structure.name,
+        keys=[columns.STATION_ID.name, columns.BIKE_TYPE.name],
         types={
-            StationStatusTableColumn.STATION_ID.value: tt.LONG,
-            StationStatusTableColumn.BIKE_TYPE.value: tt.STRING,
-            StationStatusTableColumn.BIKES.value: tt.INT,
+            columns.STATION_ID.name: "long",
+            columns.BIKE_TYPE.name: "String",
+            columns.BIKES.name: "int",
         },
     )
 
 
 def create_station_details_table(session: tt.Session, /) -> None:
+    structure = STRUCTURE.tables.STATION_DETAILS
+    columns = structure.columns
     session.create_table(
-        Table.STATION_DETAILS.value,
-        keys=[
-            StationDetailsTableColumn.ID.value,
-        ],
+        structure.name,
+        keys=[columns.ID.name],
         types={
-            StationDetailsTableColumn.ID.value: tt.LONG,
-            StationDetailsTableColumn.NAME.value: tt.STRING,
-            StationDetailsTableColumn.DEPARTMENT.value: tt.STRING,
-            StationDetailsTableColumn.CITY.value: tt.STRING,
-            StationDetailsTableColumn.POSTCODE.value: tt.INT,
-            StationDetailsTableColumn.STREET.value: tt.STRING,
-            StationDetailsTableColumn.HOUSE_NUMBER.value: tt.STRING,
-            StationDetailsTableColumn.CAPACITY.value: tt.INT,
+            columns.ID.name: "long",
+            columns.NAME.name: "String",
+            columns.DEPARTMENT.name: "String",
+            columns.CITY.name: "String",
+            columns.POSTCODE.name: "int",
+            columns.STREET.name: "String",
+            columns.HOUSE_NUMBER.name: "String",
+            columns.CAPACITY.name: "int",
         },
-        default_values={StationDetailsTableColumn.POSTCODE.value: 0},
+        default_values={columns.POSTCODE.name: 0},
     )
 
 
 def join_tables(session: tt.Session, /) -> None:
-    session.tables[Table.STATION_STATUS.value].join(
-        session.tables[Table.STATION_DETAILS.value],
-        session.tables[Table.STATION_STATUS.value][
-            StationStatusTableColumn.STATION_ID.value
-        ]
-        == session.tables[Table.STATION_DETAILS.value][
-            StationDetailsTableColumn.ID.value
-        ],
+    session.tables[STRUCTURE.tables.STATION_STATUS.name].join(
+        session.tables[STRUCTURE.tables.STATION_DETAILS.name],
+        get_column(STRUCTURE.tables.STATION_STATUS.columns.STATION_ID, session=session)
+        == get_column(STRUCTURE.tables.STATION_DETAILS.columns.ID, session=session),
     )
 
 

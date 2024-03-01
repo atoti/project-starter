@@ -1,91 +1,102 @@
 from __future__ import annotations
 
 from inspect import getmembers
-from typing import Generic, TypeVar, get_args
-
-_Key = TypeVar("_Key", bound=tuple[str, ...])
 
 
-class _Leaf(Generic[_Key]):
+class Column:
     def __init__(self, name: str, /) -> None:
         self.name = name
+        self._key: tuple[str, str] | None = None
 
-    def _set_key(self, *, parent_key: tuple[str, ...]) -> None:
-        key = *parent_key, self.name
-        # Replace with `types.get_original_bases` when requiring Python >= 3.12.
-        key_type = get_args(get_args(self.__orig_bases__[0])[0])  # type: ignore[attr-defined]
-        assert all(arg is str for arg in key_type)
-        assert len(key) == len(key_type)
-        self._key = key
+    def _set_key(self, *, parent_key: tuple[str]) -> None:
+        self._key = *parent_key, self.name
 
     @property
-    def key(self) -> _Key:
+    def key(self) -> tuple[str, str]:
         key = self._key
         assert key
-        return key  # type: ignore[return-value]
+        return key
 
 
-class Column(_Leaf[tuple[str, str]]):
-    ...
-
-
-class _Leaves:
-    def _set_keys(self, *, parent_key: tuple[str, ...]) -> None:
+class Columns:
+    def _set_keys(self, *, parent_key: tuple[str, str]) -> None:
         for _, value in getmembers(self):
-            if not isinstance(value, _Leaf):
+            if not isinstance(value, Level):
                 continue
 
-            value._set_key(parent_key=parent_key)
-
-
-class Columns(_Leaves):
-    ...
+            value._set_key(parent_key=parent_key)  # noqa: SLF001
 
 
 class Table:
-    def _set_keys(self) -> None:
-        name = self.name
-        assert isinstance(name, str)
-        columns = self.columns
-        assert isinstance(columns, Columns)
-        columns._set_keys(parent_key=(name,))
+    ...
 
 
 class Tables:
-    def __init__(self) -> None:
+    ...
+
+
+class Measures:
+    ...
+
+
+class Level:
+    def __init__(self, name: str, /) -> None:
+        self.name = name
+        self._key: tuple[str, str, str] | None = None
+
+    def _set_key(self, *, parent_key: tuple[str, ...]) -> None:
+        self._key = *parent_key, self.name
+
+    @property
+    def key(self) -> tuple[str, str, str]:
+        key = self._key
+        assert key
+        return key
+
+
+class Levels:
+    def _set_keys(self, *, parent_key: tuple[str, str]) -> None:
         for _, value in getmembers(self):
-            if not isinstance(value, Table):
+            if not isinstance(value, Level):
                 continue
 
-            value._set_keys()
-
-
-class Measure(_Leaf[tuple[str]]):
-    ...
-
-
-class Measures(_Leaves):
-    ...
-
-
-class Level(_Leaf[tuple[str, str, str]]):
-    ...
-
-
-class Levels(_Leaves):
-    ...
+            value._set_key(parent_key=parent_key)  # noqa: SLF001
 
 
 class Hierarchy:
-    ...
+    _key: tuple[str, str] | None = None
+
+    def _set_keys(self, *, parent_key: tuple[str]) -> None:
+        name = self.name
+        assert isinstance(name, str)
+        self._key = *parent_key, name
+        levels = self.levels
+        assert isinstance(levels, Levels)
+        levels._set_keys(parent_key=(*parent_key, name))  # noqa: SLF001
+
+    @property
+    def key(self) -> tuple[str, str]:
+        key = self._key
+        assert key
+        return key
 
 
 class Hierarchies:
-    ...
+    def _set_keys(self, *, parent_key: tuple[str]) -> None:
+        for _, value in getmembers(self):
+            if not isinstance(value, Hierarchy):
+                continue
+
+            value._set_keys(parent_key=parent_key)  # noqa: SLF001
 
 
 class Dimension:
-    ...
+    def __init__(self) -> None:
+        name = self.name
+        assert isinstance(name, str)
+        hierarchies = self.hierarchies
+        assert isinstance(hierarchies, Hierarchies)
+        hierarchies._set_keys(parent_key=(name,))  # noqa: SLF001
 
 
 class Dimensions:
@@ -93,12 +104,7 @@ class Dimensions:
 
 
 class Cube:
-    def __init__(self) -> None:
-        for _, value in getmembers(self):
-            if not isinstance(value, Table):
-                continue
-
-            value._set_keys()
+    ...
 
 
 class Cubes:

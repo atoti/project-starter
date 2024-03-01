@@ -11,7 +11,6 @@ from .util import (
     Hierarchy,
     Level,
     Levels,
-    Measure,
     Measures,
     Table,
     Tables,
@@ -51,8 +50,8 @@ class _Tables(Tables):
 
 
 class _StationCubeMeasures(Measures):
-    CAPACITY = Measure(_StationDetailsTableColumns.CAPACITY.name)
-    BIKES = Measure(_StationStatusTableColumn.BIKES.name)
+    CAPACITY = _StationDetailsTableColumns.CAPACITY.name
+    BIKES = _StationStatusTableColumn.BIKES.name
 
 
 class _StationCubeStationDetailsDimensionLocationHierarchyLevels(Levels):
@@ -127,6 +126,3 @@ class _Structure:
 
 
 STRUCTURE = _Structure()
-
-
-STRUCTURE.cubes.STATION.dimensions.STATION_DETAILS.hierarchies.STATION.levels.NAME.key

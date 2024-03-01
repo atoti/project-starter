@@ -10,7 +10,7 @@ import pandas as pd
 from pydantic import HttpUrl
 
 from .config import Config
-from .constants import StationDetailsTableColumn, StationStatusTableColumn, Table
+from .structure import STRUCTURE
 from .util import read_json, reverse_geocode
 
 
@@ -20,6 +20,8 @@ def read_station_details(
     timeout: timedelta,
     velib_data_base_path: HttpUrl | Path,
 ) -> pd.DataFrame:
+    station_details_columns = STRUCTURE.tables.STATION_DETAILS.columns
+
     stations_data: Any = cast(
         Any,
         read_json(
@@ -30,9 +32,9 @@ def read_station_details(
         ["station_id", "name", "capacity", "lat", "lon"]
     ].rename(
         columns={
-            "station_id": StationDetailsTableColumn.ID.value,
-            "name": StationDetailsTableColumn.NAME.value,
-            "capacity": StationDetailsTableColumn.CAPACITY.value,
+            "station_id": station_details_columns.ID.name,
+            "name": station_details_columns.NAME.name,
+            "capacity": station_details_columns.CAPACITY.name,
             "lat": "latitude",
             "lon": "longitude",
         }
@@ -51,11 +53,11 @@ def read_station_details(
         coordinates, reverse_geocoding_path=reverse_geocoding_path, timeout=timeout
     ).rename(
         columns={
-            "department": StationDetailsTableColumn.DEPARTMENT.value,
-            "city": StationDetailsTableColumn.CITY.value,
-            "postcode": StationDetailsTableColumn.POSTCODE.value,
-            "street": StationDetailsTableColumn.STREET.value,
-            "house_number": StationDetailsTableColumn.HOUSE_NUMBER.value,
+            "department": station_details_columns.DEPARTMENT.name,
+            "city": station_details_columns.CITY.name,
+            "postcode": station_details_columns.POSTCODE.name,
+            "street": station_details_columns.STREET.name,
+            "house_number": station_details_columns.HOUSE_NUMBER.name,
         }
     )
 
@@ -70,6 +72,8 @@ def read_station_status(
     *,
     timeout: timedelta,
 ) -> pd.DataFrame:
+    station_status_columns = STRUCTURE.tables.STATION_STATUS.columns
+
     stations_data = cast(
         Any,
         read_json(velib_data_base_path, Path("station_status.json"), timeout=timeout),
@@ -84,11 +88,11 @@ def read_station_status(
             bike_type, bikes = next(iter(num_bikes_available_types.items()))
             station_statuses.append(
                 {
-                    StationStatusTableColumn.STATION_ID.value: station_status[
+                    station_status_columns.STATION_ID.name: station_status[
                         "station_id"
                     ],
-                    StationStatusTableColumn.BIKE_TYPE.value: bike_type,
-                    StationStatusTableColumn.BIKES.value: bikes,
+                    station_status_columns.BIKE_TYPE.name: bike_type,
+                    station_status_columns.BIKES.name: bikes,
                 }
             )
     return pd.DataFrame(station_statuses)
@@ -106,5 +110,9 @@ def load_tables(session: tt.Session, /, *, config: Config) -> None:
     )
 
     with session.start_transaction():
-        session.tables[Table.STATION_DETAILS.value].load_pandas(station_details_df)
-        session.tables[Table.STATION_STATUS.value].load_pandas(station_status_df)
+        session.tables[STRUCTURE.tables.STATION_DETAILS.name].load_pandas(
+            station_details_df
+        )
+        session.tables[STRUCTURE.tables.STATION_STATUS.name].load_pandas(
+            station_status_df
+        )
